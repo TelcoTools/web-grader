@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Phone Number Grader</title>
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.min.css" rel="stylesheet">
+		<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.7.32/sweetalert2.all.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+		<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+		<style>
+			.grade-taxi { color: #e91e63; font-weight: bold; }
+			.grade-platinum { color: #f5f5f5; font-weight: bold; background: #333; padding: 2px 6px; border-radius: 3px; }
+			.grade-gold { color: #ffc107; font-weight: bold; }
+			.grade-silver { color: #6c757d; font-weight: bold; }
+			.grade-standard { color: #17a2b8; }
+			
+			.grade-row-taxi { background-color: rgba(233, 30, 99, 0.1) !important; }
+			.grade-row-platinum { background-color: rgba(51, 51, 51, 0.1) !important; }
+			.grade-row-gold { background-color: rgba(255, 193, 7, 0.1) !important; }
+			.grade-row-silver { background-color: rgba(108, 117, 125, 0.1) !important; }
+			.grade-row-standard { background-color: rgba(23, 162, 184, 0.05) !important; }
+			
+			/* DataTables customization */
+			.dataTables_wrapper .dataTables_length,
+			.dataTables_wrapper .dataTables_filter,
+			.dataTables_wrapper .dataTables_info,
+			.dataTables_wrapper .dataTables_paginate {
+				margin-bottom: 0.5rem;
+			}
+			
+			.dataTables_wrapper .dataTables_filter input {
+				border-radius: 0.375rem;
+				border: 1px solid #ced4da;
+				padding: 0.375rem 0.75rem;
+			}
+			
+			table.dataTable tbody tr {
+				font-family: 'Courier New', monospace;
+			}
+			
+			table.dataTable thead th {
+				border-bottom: 2px solid #dee2e6;
+				font-weight: 600;
+			}
+			
+			.upload-area {
+				border: 2px dashed #dee2e6;
+				border-radius: 10px;
+				padding: 40px;
+				text-align: center;
+				transition: all 0.3s ease;
+				cursor: pointer;
+			}
+			
+			.upload-area:hover {
+				border-color: #007bff;
+				background-color: #f8f9fa;
+			}
+			
+			.upload-area.dragover {
+				border-color: #007bff;
+				background-color: #e3f2fd;
+			}
+			
+			.results-container {
+				max-height: 500px;
+				overflow-y: auto;
+			}
+			
+			.number-row {
+				font-family: 'Courier New', monospace;
+			}
+			
+			.stats-card {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container-fluid py-4">
+			<div class="row">
+				<div class="col-12">
+					<h1 class="text-center mb-4">
+						<i class="fas fa-phone-alt me-2"></i>
+						Phone Number Grader
+					</h1>
+				</div>
+			</div>
+			
+			<div class="row">
+				<div class="col-md-4">
+					<!-- Input Section -->
+					<div class="card mb-4">
+						<div class="card-header">
+							<h5><i class="fas fa-phone me-2"></i>Phone Numbers Input</h5>
+							<ul class="nav nav-tabs card-header-tabs" id="inputTabs" role="tablist">
+								<li class="nav-item" role="presentation">
+									<button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+										<i class="fas fa-upload me-1"></i>Upload CSV
+									</button>
+								</li>
+								<li class="nav-item" role="presentation">
+									<button class="nav-link" id="paste-tab" data-bs-toggle="tab" data-bs-target="#paste" type="button" role="tab">
+										<i class="fas fa-clipboard me-1"></i>Copy/Paste
+									</button>
+								</li>
+							</ul>
+						</div>
+						<div class="card-body">
+							<div class="tab-content" id="inputTabContent">
+								<!-- Upload Tab -->
+								<div class="tab-pane fade show active" id="upload" role="tabpanel">
+									<div class="upload-area" id="uploadArea">
+										<i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+										<p class="mb-2">Drop your CSV file here or click to browse</p>
+										<small class="text-muted">Supports CSV files with phone numbers</small>
+										<input type="file" id="csvFile" accept=".csv" style="display: none;">
+									</div>
+								</div>
+								
+								<!-- Paste Tab -->
+								<div class="tab-pane fade" id="paste" role="tabpanel">
+									<div class="mb-3">
+										<label for="phoneNumbersText" class="form-label">Paste phone numbers here:</label>
+										<textarea 
+											class="form-control" 
+											id="phoneNumbersText" 
+											rows="8" 
+											placeholder="Paste phone numbers here, one per line or comma separated:&#10;&#10;+447123456789&#10;447123456788&#10;07123456787&#10;&#10;or&#10;&#10;+447123456789, 447123456788, 07123456787"
+										></textarea>
+										<div class="form-text">
+											<i class="fas fa-info-circle me-1"></i>
+											Supports various formats: +44, 44, 07, etc. One per line or comma separated.
+										</div>
+									</div>
+									<div class="d-flex gap-2">
+										<button class="btn btn-primary" id="processTextBtn">
+											<i class="fas fa-cogs me-1"></i>Process Numbers
+										</button>
+										<button class="btn btn-outline-secondary" id="clearTextBtn">
+											<i class="fas fa-eraser me-1"></i>Clear
+										</button>
+										<button class="btn btn-outline-info" id="sampleDataBtn">
+											<i class="fas fa-magic me-1"></i>Load Sample Data
+										</button>
+									</div>
+								</div>
+							</div>
+							
+							<div class="mt-3">
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" id="memorableOnly">
+									<label class="form-check-label" for="memorableOnly">
+										Show memorable numbers only
+									</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" id="showPatterns" checked>
+									<label class="form-check-label" for="showPatterns">
+										Show matching patterns
+									</label>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Stats Card -->
+					<div class="card stats-card mb-4" id="statsCard" style="display: none;">
+						<div class="card-body text-center">
+							<h5 class="card-title">Processing Complete</h5>
+							<div class="row">
+								<div class="col-6">
+									<h3 id="totalNumbers">0</h3>
+									<small>Total Numbers</small>
+								</div>
+								<div class="col-6">
+									<h3 id="memorableNumbers">0</h3>
+									<small>Memorable Numbers</small>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Chart -->
+					<div class="card" id="chartCard" style="display: none;">
+						<div class="card-header">
+							<h5><i class="fas fa-chart-pie me-2"></i>Grade Distribution</h5>
+						</div>
+						<div class="card-body">
+							<canvas id="gradeChart" width="400" height="300"></canvas>
+						</div>
+					</div>
+				</div>
+				
+				<div class="col-md-8">
+					<!-- Results Section -->
+					<div class="card" id="resultsCard" style="display: none;">
+						<div class="card-header d-flex justify-content-between align-items-center">
+							<h5><i class="fas fa-list me-2"></i>Results</h5>
+							<div>
+								<button class="btn btn-success btn-sm me-2" id="downloadBtn">
+									<i class="fas fa-download me-1"></i>Download CSV
+								</button>
+								<button class="btn btn-info btn-sm" id="saveResultsBtn">
+									<i class="fas fa-save me-1"></i>Save Results
+								</button>
+							</div>
+						</div>
+						<div class="card-body p-0">
+							<div class="p-3">
+								<table id="resultsTable" class="table table-hover" style="width:100%">
+									<thead>
+										<tr>
+											<th>Phone Number</th>
+											<th>Grade</th>
+											<th id="patternColumn">Pattern</th>
+										</tr>
+									</thead>
+									<tbody>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Totals Section -->
+					<div class="card mt-4" id="totalsCard" style="display: none;">
+						<div class="card-header">
+							<h5><i class="fas fa-calculator me-2"></i>Grade Totals</h5>
+						</div>
+						<div class="card-body">
+							<div class="row text-center">
+								<div class="col">
+									<h4 class="grade-taxi" id="taxiCount">0</h4>
+									<small>Taxi</small>
+								</div>
+								<div class="col">
+									<h4 class="grade-platinum" id="platinumCount">0</h4>
+									<small>Platinum</small>
+								</div>
+								<div class="col">
+									<h4 class="grade-gold" id="goldCount">0</h4>
+									<small>Gold</small>
+								</div>
+								<div class="col">
+									<h4 class="grade-silver" id="silverCount">0</h4>
+									<small>Silver</small>
+								</div>
+								<div class="col">
+									<h4 class="grade-standard" id="standardCount">0</h4>
+									<small>Standard</small>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<!-- Previous Results -->
+			<div class="row mt-4">
+				<div class="col-12">
+					<div class="card" id="historyCard" style="display: none;">
+						<div class="card-header d-flex justify-content-between align-items-center">
+							<h5><i class="fas fa-history me-2"></i>Previous Results</h5>
+							<button class="btn btn-outline-danger btn-sm" id="clearHistoryBtn">
+								<i class="fas fa-trash me-1"></i>Clear History
+							</button>
+						</div>
+						<div class="card-body">
+							<div id="historyList"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="text-center mt-5 py-3 border-top">
+			<small class="text-muted">
+				Telco.Tools Phone Number Grader &copy; 2025 &verbar; All processing happens locally in your browser, nothing is sent to our servers &verbar; <a href="https://github.com/TelcoTools" target="_blank">Telco.Tools</a>
+			</small>
+		</div>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+		<script>
+			// Constants for grading
+			const TAXI = 5;
+			const PLATINUM = 4;
+			const GOLD = 3;
+			const SILVER = 2;
+			const BRONZE = 1;
+			const STANDARD = 0;
+
+			// TelephoneNumberGrader class - converted from PHP
+			class TelephoneNumberGrader {
+				static analyseNumber(number) {
+					const functionArray = [
+						'testRepeatingNumbers',
+						'testNumberRuns',
+						'testRepeatingPatternsWithGaps',
+						'testMemorable'
+					];
+
+					let numberValue = { value: 0, subValue: 0, reason: [] };
+
+					if (number.charAt(0) === "+") {
+						number = number.substring(1);
+					}
+
+					const grader = new TelephoneNumberGrader();
+					functionArray.forEach(test => {
+						grader[test](number, numberValue);
+					});
+
+					return numberValue;
+				}
+
+				testRepeatingNumbers(number, numberValue) {
+					const valueNumberDuplicates = [
+						[6, "value", TAXI],
+						[3, 3, "value", PLATINUM],
+						[2, 4, "value", GOLD],
+						[4, "value", GOLD],
+						[3, "value", GOLD],
+						[2, 2, 2, "value", GOLD],
+						[2, 2, "value", SILVER],
+						[2, "value", BRONZE]
+					];
+
+					let lastNumber = number.charAt(number.length - 1);
+					let repeatedPhraseArray = [1];
+					let repeatedPhraseArrayPointer = 0;
+					let tempNumber = number.substring(0, number.length - 1);
+
+					while (tempNumber.length > 0) {
+						if (tempNumber.charAt(tempNumber.length - 1) === lastNumber) {
+							repeatedPhraseArray[repeatedPhraseArrayPointer]++;
+						} else {
+							lastNumber = tempNumber.charAt(tempNumber.length - 1);
+							repeatedPhraseArrayPointer++;
+							repeatedPhraseArray[repeatedPhraseArrayPointer] = 1;
+						}
+						tempNumber = tempNumber.substring(0, tempNumber.length - 1);
+					}
+
+					valueNumberDuplicates.forEach(possibleRun => {
+						let subValue = 0;
+						let valid = true;
+						
+						for (let i = 0; i < possibleRun.length - 2; i++) {
+							if (repeatedPhraseArray[i] < possibleRun[i]) {
+								valid = false;
+								break;
+							} else if (repeatedPhraseArray[i] > possibleRun[i]) {
+								subValue += repeatedPhraseArray[i] - possibleRun[i];
+							}
+						}
+						
+						if (valid) {
+							this.updateValue(numberValue, possibleRun[possibleRun.length - 1], subValue, "Repeated digits");
+						}
+					});
+				}
+
+				testNumberRuns(number, numberValue) {
+					// Simplified version - basic consecutive number detection
+					let consecutiveCount = 1;
+					let maxConsecutive = 1;
+					
+					for (let i = 1; i < number.length; i++) {
+						const current = parseInt(number[i]);
+						const previous = parseInt(number[i-1]);
+						
+						if (Math.abs(current - previous) === 1) {
+							consecutiveCount++;
+							maxConsecutive = Math.max(maxConsecutive, consecutiveCount);
+						} else {
+							consecutiveCount = 1;
+						}
+					}
+					
+					if (maxConsecutive >= 6) {
+						this.updateValue(numberValue, GOLD, 0, "Run");
+					} else if (maxConsecutive >= 4) {
+						this.updateValue(numberValue, SILVER, 0, "Run");
+					} else if (maxConsecutive >= 3) {
+						this.updateValue(numberValue, BRONZE, 0, "Run");
+					}
+				}
+
+				testRepeatingPatternsWithGaps(number, numberValue) {
+					// Simplified pattern detection
+					const len = number.length;
+					
+					// Check for simple repeating patterns
+					for (let patternLen = 2; patternLen <= Math.floor(len/2); patternLen++) {
+						const pattern = number.substring(len - patternLen);
+						const beforePattern = number.substring(len - patternLen * 2, len - patternLen);
+						
+						if (pattern === beforePattern) {
+							if (patternLen >= 4) {
+								this.updateValue(numberValue, TAXI, 0, "Repeating pattern");
+							} else if (patternLen === 3) {
+								this.updateValue(numberValue, PLATINUM, 0, "Repeating pattern");
+							} else {
+								this.updateValue(numberValue, SILVER, 0, "Repeating pattern");
+							}
+							break;
+						}
+					}
+				}
+
+				testMemorable(number, numberValue) {
+					const len = number.length;
+					
+					// Last 2 triplets consecutive
+					if (len >= 6) {
+						const lastThree = number.substring(len - 3);
+						const beforeThree = number.substring(len - 6, len - 3);
+						if (Math.abs(parseInt(lastThree) - parseInt(beforeThree)) === 1) {
+							this.updateValue(numberValue, PLATINUM, 0, "Last 2 triplets consecutive");
+						}
+					}
+					
+					// Palindrome patterns
+					if (len >= 6) {
+						const last6 = number.substring(len - 6);
+						if (last6[0] === last6[5] && last6[1] === last6[4] && last6[2] === last6[3]) {
+							this.updateValue(numberValue, GOLD, 0, "Ending xyzzyx");
+						}
+					}
+					
+					// Ending 00
+					if (number.endsWith("00")) {
+						this.updateValue(numberValue, STANDARD, 0, "Ending 00");
+					}
+				}
+
+				updateValue(numberValue, newValue, newSubValue, newValueReason) {
+					if (newValue > numberValue.value || (newValue === numberValue.value && newSubValue > numberValue.subValue)) {
+						numberValue.value = newValue;
+						numberValue.reason.push(newValueReason);
+					}
+					numberValue.subValue += newSubValue;
+				}
+			}
+
+			// Sorting functionality
+			let currentSort = { column: 'grade', direction: 'desc' };
+
+			document.querySelectorAll('.sortable-header').forEach(header => {
+				header.addEventListener('click', () => {
+					const sortBy = header.getAttribute('data-sort');
+					
+					// Update sort direction
+					if (currentSort.column === sortBy) {
+						currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+					} else {
+						currentSort.column = sortBy;
+						currentSort.direction = sortBy === 'grade' ? 'desc' : 'asc';
+					}
+					
+					// Update sort icons
+					updateSortIcons();
+					
+					// Re-sort and display results
+					if (currentResults.length > 0) {
+						const gradeCounts = calculateGradeCounts(currentResults);
+						displayResults(currentResults, gradeCounts, 'Current Results');
+					}
+				});
+			});
+
+			function updateSortIcons() {
+				// Reset all icons
+				document.querySelectorAll('.sort-icon').forEach(icon => {
+					icon.className = 'fas fa-sort sort-icon';
+				});
+				
+				// Set active icon
+				const activeIcon = document.getElementById(`sort-${currentSort.column}`);
+				if (activeIcon) {
+					activeIcon.className = `fas fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'} sort-icon active`;
+				}
+			}
+
+			function sortResults(results) {
+				return [...results].sort((a, b) => {
+					let comparison = 0;
+					
+					switch (currentSort.column) {
+						case 'phone':
+							comparison = a.phone.localeCompare(b.phone);
+							break;
+						case 'grade':
+							// Sort by grade value first, then by phone number
+							if (a.gradeValue !== b.gradeValue) {
+								comparison = a.gradeValue - b.gradeValue;
+							} else {
+								comparison = a.phone.localeCompare(b.phone);
+							}
+							break;
+						case 'pattern':
+							comparison = a.pattern.localeCompare(b.pattern);
+							if (comparison === 0) {
+								comparison = a.phone.localeCompare(b.phone);
+							}
+							break;
+					}
+					
+					return currentSort.direction === 'asc' ? comparison : -comparison;
+				});
+			}
+
+			function calculateGradeCounts(results) {
+				return {
+					taxi: results.filter(r => r.grade === 'taxi').length,
+					platinum: results.filter(r => r.grade === 'platinum').length,
+					gold: results.filter(r => r.grade === 'gold').length,
+					silver: results.filter(r => r.grade === 'silver').length,
+					standard: results.filter(r => r.grade === 'standard').length
+				};
+			}
+			let currentResults = [];
+			let gradeChart = null;
+
+			// Text processing functionality
+			document.getElementById('processTextBtn').addEventListener('click', () => {
+				const text = document.getElementById('phoneNumbersText').value.trim();
+				if (!text) {
+					Swal.fire({
+						icon: 'warning',
+						title: 'No Input',
+						text: 'Please paste some phone numbers first.',
+						confirmButtonColor: '#007bff'
+					});
+					return;
+				}
+				
+				processTextInput(text);
+			});
+
+			document.getElementById('clearTextBtn').addEventListener('click', () => {
+				document.getElementById('phoneNumbersText').value = '';
+			});
+
+			document.getElementById('sampleDataBtn').addEventListener('click', () => {
+				const sampleData = `+447123456789
+	447123456788
+	07123456787
+	+447777777777
+	447123123123
+	+447111111111
+	447999888777
+	+447654321098
+	447000000000
+	+447123456000`;
+				document.getElementById('phoneNumbersText').value = sampleData;
+			});
+
+			function processTextInput(text) {
+				// Parse text input - handle both line-separated and comma-separated
+				let numbers = [];
+				
+				// First try splitting by lines
+				const lines = text.split(/[\r\n]+/);
+				lines.forEach(line => {
+					const trimmed = line.trim();
+					if (trimmed) {
+						// Check if line contains commas
+						if (trimmed.includes(',')) {
+							// Split by comma and process each
+							const commaSplit = trimmed.split(',');
+							commaSplit.forEach(item => {
+								const cleaned = item.trim().replace(/[^\d]/g, '');
+								if (cleaned && /^\d+$/.test(cleaned)) {
+									numbers.push(cleaned);
+								}
+							});
+						} else {
+							// Single number per line
+							const cleaned = trimmed.replace(/[^\d]/g, '');
+							if (cleaned && /^\d+$/.test(cleaned)) {
+								numbers.push(cleaned);
+							}
+						}
+					}
+				});
+				
+				if (numbers.length > 0) {
+					processNumbers(numbers, `Pasted Input (${numbers.length} numbers)`);
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: 'No Valid Numbers',
+						text: 'No valid phone numbers found in the input text.',
+						confirmButtonColor: '#007bff'
+					});
+				}
+			}
+			const uploadArea = document.getElementById('uploadArea');
+			const csvFile = document.getElementById('csvFile');
+
+			uploadArea.addEventListener('click', () => csvFile.click());
+			uploadArea.addEventListener('dragover', (e) => {
+				e.preventDefault();
+				uploadArea.classList.add('dragover');
+			});
+			uploadArea.addEventListener('dragleave', () => {
+				uploadArea.classList.remove('dragover');
+			});
+			uploadArea.addEventListener('drop', (e) => {
+				e.preventDefault();
+				uploadArea.classList.remove('dragover');
+				const files = e.dataTransfer.files;
+				if (files.length > 0) {
+					processFile(files[0]);
+				}
+			});
+
+			csvFile.addEventListener('change', (e) => {
+				if (e.target.files.length > 0) {
+					processFile(e.target.files[0]);
+				}
+			});
+
+			function processFile(file) {
+				const reader = new FileReader();
+				reader.onload = function(e) {
+					const csv = e.target.result;
+					const lines = csv.split('\n');
+					const numbers = [];
+					
+					lines.forEach((line, index) => {
+						const trimmed = line.trim();
+						if (trimmed) {
+							// Clean phone number
+							const cleaned = trimmed.replace(/[^\d]/g, '');
+							if (cleaned && /^\d+$/.test(cleaned)) {
+								numbers.push(cleaned);
+							}
+						}
+					});
+					
+					if (numbers.length > 0) {
+						processNumbers(numbers, file.name);
+					} else {
+						Swal.fire({
+							icon: 'error',
+							title: 'No Valid Numbers',
+							text: 'No valid phone numbers found in the CSV file.',
+							confirmButtonColor: '#007bff'
+						});
+					}
+				};
+				reader.readAsText(file);
+			}
+
+			function processNumbers(numbers, filename) {
+				const results = [];
+				const gradeCounts = {
+					taxi: 0,
+					platinum: 0,
+					gold: 0,
+					silver: 0,
+					standard: 0
+				};
+
+				numbers.forEach(phoneNumber => {
+					const grader = TelephoneNumberGrader.analyseNumber(phoneNumber);
+					let grade;
+					
+					switch (grader.value) {
+						case 5: grade = "taxi"; break;
+						case 4: grade = "platinum"; break;
+						case 3: grade = "gold"; break;
+						case 2: grade = "silver"; break;
+						case 1: grade = "standard"; break;
+						default: grade = "standard"; break;
+					}
+					
+					gradeCounts[grade]++;
+					
+					results.push({
+						phone: phoneNumber,
+						grade: grade,
+						gradeValue: grader.value,
+						pattern: grader.reason.join(', ')
+					});
+				});
+
+				// Sort by current sort settings
+				results.sort((a, b) => {
+					if (a.gradeValue !== b.gradeValue) {
+						return b.gradeValue - a.gradeValue;
+					}
+					return a.phone.localeCompare(b.phone);
+				});
+
+				currentResults = results;
+				displayResults(results, gradeCounts, filename);
+				saveToHistory(results, gradeCounts, filename);
+			}
+
+			function displayResults(results, gradeCounts, filename) {
+				const memorableOnly = document.getElementById('memorableOnly').checked;
+				const showPatterns = document.getElementById('showPatterns').checked;
+				
+				// Update stats
+				document.getElementById('totalNumbers').textContent = results.length;
+				document.getElementById('memorableNumbers').textContent = 
+					results.filter(r => r.grade !== 'standard').length;
+				
+				// Update totals
+				document.getElementById('taxiCount').textContent = gradeCounts.taxi;
+				document.getElementById('platinumCount').textContent = gradeCounts.platinum;
+				document.getElementById('goldCount').textContent = gradeCounts.gold;
+				document.getElementById('silverCount').textContent = gradeCounts.silver;
+				document.getElementById('standardCount').textContent = gradeCounts.standard;
+				
+				// Show/hide pattern column
+				const patternColumn = document.getElementById('patternColumn');
+				if (showPatterns) {
+					patternColumn.style.display = '';
+				} else {
+					patternColumn.style.display = 'none';
+				}
+				
+				// Destroy existing DataTable if it exists
+				if ($.fn.DataTable.isDataTable('#resultsTable')) {
+					$('#resultsTable').DataTable().destroy();
+				}
+				
+				// Clear the table
+				$('#resultsTable tbody').empty();
+				
+				// Prepare data for DataTables
+				const tableData = [];
+				results.forEach(result => {
+					if (!memorableOnly || result.grade !== 'standard') {
+						const row = [
+							result.phone,
+							result.grade,
+							showPatterns ? result.pattern : ''
+						];
+						tableData.push(row);
+					}
+				});
+				
+				// Initialize DataTables
+				const columns = [
+					{ 
+						data: 0, 
+						title: "Phone Number",
+						render: function(data, type, row) {
+							return `<span style="font-family: 'Courier New', monospace;">${data}</span>`;
+						}
+					},
+					{ 
+						data: 1, 
+						title: "Grade",
+						render: function(data, type, row) {
+							if (type === 'sort' || type === 'type') {
+								// Return numeric value for sorting
+								switch(data) {
+									case 'taxi': return 5;
+									case 'platinum': return 4;
+									case 'gold': return 3;
+									case 'silver': return 2;
+									case 'standard': return 1;
+									default: return 0;
+								}
+							}
+							return `<span class="grade-${data}">${data}</span>`;
+						}
+					}
+				];
+				
+				if (showPatterns) {
+					columns.push({ 
+						data: 2, 
+						title: "Pattern",
+						render: function(data, type, row) {
+							return `<span style="font-size: 0.9em;">${data}</span>`;
+						}
+					});
+				}
+				
+				dataTable = $('#resultsTable').DataTable({
+					data: tableData,
+					columns: columns,
+					order: [[1, 'desc']], // Sort by grade descending by default
+					pageLength: 10,
+					responsive: true,
+					dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+						'<"row"<"col-sm-12"tr>>' +
+						'<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+					language: {
+						search: "Search numbers:",
+						lengthMenu: "Show _MENU_ numbers per page",
+						info: "Showing _START_ to _END_ of _TOTAL_ numbers",
+						infoEmpty: "No numbers to display",
+						infoFiltered: "(filtered from _MAX_ total numbers)",
+						paginate: {
+							first: "First",
+							last: "Last",
+							next: "Next",
+							previous: "Previous"
+						}
+					},
+					createdRow: function(row, data, dataIndex) {
+						// Add grade-specific row class
+						const grade = data[1];
+						$(row).addClass(`grade-row-${grade}`);
+					}
+				});
+				
+				// Create chart
+				createChart(gradeCounts);
+				
+				// Show result sections
+				document.getElementById('statsCard').style.display = 'block';
+				document.getElementById('chartCard').style.display = 'block';
+				document.getElementById('resultsCard').style.display = 'block';
+				document.getElementById('totalsCard').style.display = 'block';
+			}
+
+			function createChart(gradeCounts) {
+				const ctx = document.getElementById('gradeChart').getContext('2d');
+				
+				if (gradeChart) {
+					gradeChart.destroy();
+				}
+				
+				gradeChart = new Chart(ctx, {
+					type: 'doughnut',
+					data: {
+						labels: ['Taxi', 'Platinum', 'Gold', 'Silver', 'Standard'],
+						datasets: [{
+							data: [
+								gradeCounts.taxi,
+								gradeCounts.platinum,
+								gradeCounts.gold,
+								gradeCounts.silver,
+								gradeCounts.standard
+							],
+							backgroundColor: [
+								'#e91e63',
+								'#333333',
+								'#ffc107',
+								'#6c757d',
+								'#17a2b8'
+							],
+							borderWidth: 2,
+							borderColor: '#fff'
+						}]
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: {
+							legend: {
+								position: 'bottom'
+							}
+						}
+					}
+				});
+			}
+
+			function calculateGradeCounts(results) {
+				return {
+					taxi: results.filter(r => r.grade === 'taxi').length,
+					platinum: results.filter(r => r.grade === 'platinum').length,
+					gold: results.filter(r => r.grade === 'gold').length,
+					silver: results.filter(r => r.grade === 'silver').length,
+					standard: results.filter(r => r.grade === 'standard').length
+				};
+			}
+
+			// Download functionality
+			document.getElementById('downloadBtn').addEventListener('click', () => {
+				const showPatterns = document.getElementById('showPatterns').checked;
+				const memorableOnly = document.getElementById('memorableOnly').checked;
+				
+				let csvContent = showPatterns ? 
+					'Phone Number,Grade,Pattern\n' : 
+					'Phone Number,Grade\n';
+				
+				currentResults.forEach(result => {
+					if (!memorableOnly || result.grade !== 'standard') {
+						if (showPatterns) {
+							csvContent += `${result.phone},${result.grade},"${result.pattern}"\n`;
+						} else {
+							csvContent += `${result.phone},${result.grade}\n`;
+						}
+					}
+				});
+				
+				const blob = new Blob([csvContent], { type: 'text/csv' });
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = 'graded_phone_numbers.csv';
+				a.click();
+				window.URL.revokeObjectURL(url);
+			});
+
+			// Local storage for history
+			function saveToHistory(results, gradeCounts, filename) {
+				const history = JSON.parse(localStorage.getItem('phoneGraderHistory') || '[]');
+				const entry = {
+					timestamp: new Date().toISOString(),
+					filename: filename,
+					totalNumbers: results.length,
+					gradeCounts: gradeCounts,
+					results: results
+				};
+				
+				history.unshift(entry);
+				// Keep only last 10 entries
+				history.splice(10);
+				
+				localStorage.setItem('phoneGraderHistory', JSON.stringify(history));
+				displayHistory();
+			}
+
+			function displayHistory() {
+				const history = JSON.parse(localStorage.getItem('phoneGraderHistory') || '[]');
+				const historyList = document.getElementById('historyList');
+				
+				if (history.length === 0) {
+					document.getElementById('historyCard').style.display = 'none';
+					return;
+				}
+				
+				document.getElementById('historyCard').style.display = 'block';
+				historyList.innerHTML = '';
+				
+				history.forEach((entry, index) => {
+					const item = document.createElement('div');
+					item.className = 'border rounded p-3 mb-2';
+					item.innerHTML = `
+						<div class="d-flex justify-content-between align-items-center">
+							<div>
+								<strong>${entry.filename}</strong>
+								<small class="text-muted d-block">${new Date(entry.timestamp).toLocaleString()}</small>
+								<small>Total: ${entry.totalNumbers} | Memorable: ${entry.totalNumbers - entry.gradeCounts.standard}</small>
+							</div>
+							<button class="btn btn-outline-primary btn-sm" onclick="loadHistoryEntry(${index})">
+								<i class="fas fa-eye me-1"></i>View
+							</button>
+						</div>
+					`;
+					historyList.appendChild(item);
+				});
+			}
+
+			function loadHistoryEntry(index) {
+				const history = JSON.parse(localStorage.getItem('phoneGraderHistory') || '[]');
+				const entry = history[index];
+				
+				currentResults = entry.results;
+				displayResults(entry.results, entry.gradeCounts, entry.filename);
+			}
+
+			document.getElementById('saveResultsBtn').addEventListener('click', () => {
+				if (currentResults.length > 0) {
+					Swal.fire({
+						icon: 'success',
+						title: 'Results Saved!',
+						text: 'Results have been saved to your browser history.',
+						timer: 2000,
+						showConfirmButton: false,
+						toast: true,
+						position: 'top-end'
+					});
+				}
+			});
+
+			document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+				Swal.fire({
+					title: 'Clear History?',
+					text: 'Are you sure you want to clear all saved results? This cannot be undone.',
+					icon: 'warning',
+					showCancelButton: true,
+					confirmButtonColor: '#dc3545',
+					cancelButtonColor: '#6c757d',
+					confirmButtonText: 'Yes, clear it!',
+					cancelButtonText: 'Cancel'
+				}).then((result) => {
+					if (result.isConfirmed) {
+						localStorage.removeItem('phoneGraderHistory');
+						displayHistory();
+						Swal.fire({
+							icon: 'success',
+							title: 'History Cleared!',
+							text: 'All saved results have been deleted.',
+							timer: 2000,
+							showConfirmButton: false,
+							toast: true,
+							position: 'top-end'
+						});
+					}
+				});
+			});
+
+			// Settings change handlers
+			document.getElementById('memorableOnly').addEventListener('change', () => {
+				if (currentResults.length > 0) {
+					const gradeCounts = calculateGradeCounts(currentResults);
+					displayResults(currentResults, gradeCounts, 'Current Results');
+				}
+			});
+
+			document.getElementById('showPatterns').addEventListener('change', () => {
+				if (currentResults.length > 0) {
+					const gradeCounts = calculateGradeCounts(currentResults);
+					displayResults(currentResults, gradeCounts, 'Current Results');
+				}
+			});
+
+			// Initialize
+			displayHistory();
+		</script>
+	</body>
+</html>
