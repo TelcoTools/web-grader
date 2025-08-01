@@ -552,15 +552,15 @@
 
 			document.getElementById('sampleDataBtn').addEventListener('click', () => {
 				const sampleData = `+447123456789
-	447123456788
-	07123456787
-	+447777777777
-	447123123123
-	+447111111111
-	447999888777
-	+447654321098
-	447000000000
-	+447123456000`;
+447123456788
+07123456787
++447777777777
+447123123123
++447111111111
+447999888777
++447654321098
+447000000000
++447123456000`;
 				document.getElementById('phoneNumbersText').value = sampleData;
 			});
 
@@ -871,16 +871,6 @@
 						}
 					}
 				});
-			}
-
-			function calculateGradeCounts(results) {
-				return {
-					taxi: results.filter(r => r.grade === 'taxi').length,
-					platinum: results.filter(r => r.grade === 'platinum').length,
-					gold: results.filter(r => r.grade === 'gold').length,
-					silver: results.filter(r => r.grade === 'silver').length,
-					standard: results.filter(r => r.grade === 'standard').length
-				};
 			}
 
 			// Download functionality
